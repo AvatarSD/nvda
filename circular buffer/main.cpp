@@ -9,14 +9,12 @@
 template<typename T>
 class cb_t {
         friend class cb_it_t;
-
    public:
     class cb_it_t {
         cb_t<T> &buf;
-       public:
         std::size_t pos;
         
-    //    public:
+       public:
         cb_it_t(cb_t<T> &buf, std::size_t pos) : buf(buf), pos(pos) {}
 
         T & operator *() {
@@ -25,50 +23,36 @@ class cb_t {
         }
 
         cb_it_t & operator ++() {
-            std::cout << "incremented(buf sz:" << buf.buf.size() << ") pre: " << pos;
-            
-            pos++;
-            if(pos == buf.buf.size())
+            if(++pos == buf.buf.size())
                 pos = 0;
 
-            std::cout << " -> " << pos << std::endl;
             return *this;
         }
 
         cb_it_t & operator --() {
-            std::cout << "decremented(buf sz:" << buf.buf.size() << ") pre: " << pos;
-
             if(pos == 0)
                 pos = buf.buf.size() - 1;
             else
                 pos--;
-            
-            std::cout << " -> " << pos << std::endl;
+
             return *this;
         }
 
         cb_it_t operator ++(int) {
-            std::cout << "incremented(buf sz:" << buf.buf.size() << ") pos: " << pos;
-
             auto last = *this;
-            pos++;
-            if(pos == buf.buf.size())
+            if(++pos == buf.buf.size())
                 pos = 0;
-
-            std::cout << " -> " << pos << std::endl;
+            
             return last;
         }
 
         cb_it_t operator --(int) {
-            std::cout << "decremented(buf sz:" << buf.buf.size() << ") pos: " << pos;
-
             auto last = *this;
             if(pos == 0)
                 pos = buf.buf.size() - 1;
             else
                 pos--;
 
-            std::cout << " -> " << pos << std::endl;
             return last;
         }
 
@@ -81,11 +65,11 @@ class cb_t {
         }
 
         std::ptrdiff_t operator - (const cb_it_t &val) const {
-            std::cout << "{ diff pointers: local val: " << pos << "; r val: }" << val.pos;
-
             if (pos >= val.pos) return pos - val.pos;
             return buf.buf.size() - (val.pos - pos);
         }
+
+        std::size_t get_pos() const { return pos; };        
     };
 
    private:
@@ -95,7 +79,7 @@ class cb_t {
     cb_it_t rd_p;
 
    public:
-    explicit cb_t(std::size_t sz) : buf{sz, {}}, wr_p{begin()}, rd_p{begin()} {
+    explicit cb_t(std::size_t sz) : buf{}, wr_p{begin()}, rd_p{begin()} {
         if(sz < 2) throw std::length_error("circular buffer must be at least 2 elements long");
 
         std::cout << "Constfuct circular buffer with " << sz << " elements, size: " << buf.size() << std::endl;
@@ -103,7 +87,7 @@ class cb_t {
     }
 
     // void resize(std::size_t sz) {
-    //     std::size_t last_sz = buff.size();
+    //     std::size_t last_sz = buf.size();
     //     if (sz < last_sz) throw std::range_error("resize() allowed only upside");
 
     //     buff.resize(sz);
@@ -130,9 +114,9 @@ class cb_t {
         ++wr_p;
 
         /* Overwrite tail */
-        if(wr_p == rd_p) {
-            std::cout << "tail overwritten! (wr: " << wr_p.pos << "; rd: " << wr_p.pos << ")" <<  std::endl;
+        if(wr_p == rd_p){
             ++rd_p;
+            std::cerr << "Tail Owerwritten!" << std::endl;
         }
     }
 
@@ -165,9 +149,10 @@ class cb_t {
 
 
 /* Testing Threads Routines */
+/** @todo encapsulate with cb_t q; cond_var_t exit; */
 std::mutex mtx;
 
-void producer(cb_t<int>& q) {
+void producer_fn(cb_t<int>& q) {
     // for (int i = 0; i < 10; ++i) {
     for (;;) {
         static unsigned int new_value = 0;
@@ -176,11 +161,11 @@ void producer(cb_t<int>& q) {
             q.push_back(new_value++);
         }
         std::cout << "Produced: " << new_value << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(4)); // Simulate work
+        std::this_thread::sleep_for(std::chrono::milliseconds(4));
     }
 }
 
-void consumer(cb_t<int>& q) {
+void consumer_fn(cb_t<int>& q) {
     while (true) {
         int value;
         {
@@ -189,60 +174,51 @@ void consumer(cb_t<int>& q) {
             if (!q.empty()) value = q.pop_front();
         }
         std::cout << "\t\t\tConsumed: " << value << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(4)); // Read every second
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 }
 
 int main (int argc, const char**argv) {
 
-    cb_t<int> q(12);
+    cb_t<int> q(64);
  
-    q.push_back(0); // back pushes 0
-    std::cout << "cb_t size: " << q.size() << std::endl;
-    std::fflush(NULL);
-    
-    q.push_back(1); // q = 0 1S
-    std::cout << "cb_t size: " << q.size() << std::endl;
-    std::fflush(NULL);
-    
-    q.push_back(2); // q = 0 1 2
-    std::cout << "cb_t size: " << q.size() << std::endl;
-    std::fflush(NULL);
-
-    q.push_back(3); // q = 0 1 2 3
-    std::cout << "cb_t size: " << q.size() << std::endl;
-    std::fflush(NULL);
+    /* Push some */
+    q.push_back(0); /* first element: 0 */
+    q.push_back(1); /* q = 0 1 */
+    q.push_back(2); /* q = 0 1 2 */
+    q.push_back(3); /* q = 0 1 2 3 */
  
+    /* Check some */
+    std::cout << "cb_t size: " << q.size() << std::endl;
     assert(q.front() == 0);
-    // assert(q.back() == 3);
     assert(q.size() == 4);
- 
-    assert(q.pop_front() == 0); // removes the front element, 0
+    assert(q.pop_front() == 0);
     assert(q.size() == 3);
  
-    // Print and remove all elements. Note that std::queue does not
-    // support begin()/end(), so a range-for-loop cannot be used.
+    /* Pop all elements */
     std::cout << "q: ";
-    for (; q.size(); /*q.pop_front()*/) {
+    for (; q.size(); ) {
         std::cout << q.pop_front() << ' ';
     }
-    std::cout << '\n';
+    std::cout << std::endl;
 
+    /* Check size after Pop */
     assert(q.size() == 0);
 
+    /* Start producer & consumer threads */
+    std::thread producer_th(producer_fn, std::ref(q));
+    std::thread consumer_th(consumer_fn, std::ref(q));
 
-    // Start producer thread
-    std::thread producer_thread(producer, std::ref(q));
-
-    // Start consumer thread
-    std::thread consumer_thread(consumer, std::ref(q));
-
-    // Wait for the producer to finish
-    producer_thread.join();
-
-    // Run the consumer for some more time or until it consumes all items
+    /* Run the for some time then resize the queue */
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    consumer_thread.detach(); // or join if you want to wait for the consumer to finish
+    // q.resize(72);
+
+    /* Exit  */
+    std::getc(stdin);
+
+    /** @todo exit CV & join() */
+    producer_th.detach();
+    consumer_th.detach();
 
     return 0;
 
