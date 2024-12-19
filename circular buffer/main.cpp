@@ -4,62 +4,135 @@
 #include <exception>
 #include <iostream>
 #include <mutex>
+#include <iterator>
 
-template<class T>
+template<typename T>
 class cb_t {
+        friend class cb_it_t;
+
    public:
-    using pos_t = typename std::vector<T>::iterator;
+    class cb_it_t {
+        cb_t<T> &buf;
+       public:
+        std::size_t pos;
+        
+    //    public:
+        cb_it_t(cb_t<T> &buf, std::size_t pos) : buf(buf), pos(pos) {}
+
+        T & operator *() {
+            /* as we are frieds */
+            return buf.buf[pos];
+        }
+
+        cb_it_t & operator ++() {
+            std::cout << "incremented(buf sz:" << buf.buf.size() << ") pre: " << pos;
+            
+            pos++;
+            if(pos == buf.buf.size())
+                pos = 0;
+
+            std::cout << " -> " << pos << std::endl;
+            return *this;
+        }
+
+        cb_it_t & operator --() {
+            std::cout << "decremented(buf sz:" << buf.buf.size() << ") pre: " << pos;
+
+            if(pos == 0)
+                pos = buf.buf.size() - 1;
+            else
+                pos--;
+            
+            std::cout << " -> " << pos << std::endl;
+            return *this;
+        }
+
+        cb_it_t operator ++(int) {
+            std::cout << "incremented(buf sz:" << buf.buf.size() << ") pos: " << pos;
+
+            auto last = *this;
+            pos++;
+            if(pos == buf.buf.size())
+                pos = 0;
+
+            std::cout << " -> " << pos << std::endl;
+            return last;
+        }
+
+        cb_it_t operator --(int) {
+            std::cout << "decremented(buf sz:" << buf.buf.size() << ") pos: " << pos;
+
+            auto last = *this;
+            if(pos == 0)
+                pos = buf.buf.size() - 1;
+            else
+                pos--;
+
+            std::cout << " -> " << pos << std::endl;
+            return last;
+        }
+
+        bool operator == (const cb_it_t &val) const {
+            return &val.buf == &buf && val.pos == pos;
+        }
+
+        bool operator != (const cb_it_t &val) const {
+            return !operator ==(val);
+        }
+
+        std::ptrdiff_t operator - (const cb_it_t &val) const {
+            std::cout << "{ diff pointers: local val: " << pos << "; r val: }" << val.pos;
+
+            if (pos >= val.pos) return pos - val.pos;
+            return buf.buf.size() - (val.pos - pos);
+        }
+    };
 
    private:
-    std::vector<T> buff;
+    std::vector<T> buf;
 
-    pos_t wr_p;
-    pos_t rd_p;
+    cb_it_t wr_p;
+    cb_it_t rd_p;
 
    public:
-    cb_t(std::size_t sz) : buff(sz, {}), wr_p(buff.begin()), rd_p(buff.begin()) {
+    explicit cb_t(std::size_t sz) : buf{sz, {}}, wr_p{begin()}, rd_p{begin()} {
         if(sz < 2) throw std::length_error("circular buffer must be at least 2 elements long");
-        // buff.reserve(sz);
+
+        std::cout << "Constfuct circular buffer with " << sz << " elements, size: " << buf.size() << std::endl;
+        buf.resize(sz);
     }
 
-    void resize(std::size_t sz) {
-        std::size_t last_sz = buff.size();
-        if (sz < last_sz) throw std::range_error("resize() allowed only upside");
+    // void resize(std::size_t sz) {
+    //     std::size_t last_sz = buff.size();
+    //     if (sz < last_sz) throw std::range_error("resize() allowed only upside");
 
-        buff.resize(sz);
+    //     buff.resize(sz);
 
-        /* If head at the beginning of queue */
-        if(rd_p > wr_p) {
-            auto diff = sz - last_sz;
-            if(std::distance(buff.begin(), wr_p) > diff) {
-                /* If we can not move entire head at the end */
-                buff.insert(buff.end(), buff.begin(), buff.begin() + diff);
-                buff.insert(buff.begin(), buff.begin() + diff, wr_p);
-                wr_p -= diff;
-            } else {
-                /* If we can move entire head at the end */
-                buff.insert(buff.end(), buff.begin(), buff.begin() + diff);
-                wr_p += diff;
-            }
-        }
-    }
+    //     /* If head at the beginning of queue */
+    //     if(rd_p > wr_p) {
+    //         auto diff = sz - last_sz;
+    //         if(std::distance(buff.begin(), wr_p) > diff) {
+    //             /* If we can not move entire head at the end */
+    //             buff.insert(buff.end(), buff.begin(), buff.begin() + diff);
+    //             buff.insert(buff.begin(), buff.begin() + diff, wr_p);
+    //             wr_p -= diff;
+    //         } else {
+    //             /* If we can move entire head at the end */
+    //             buff.insert(buff.end(), buff.begin(), buff.begin() + diff);
+    //             wr_p += diff;
+    //         }
+    //     }
+    // }
 
     /* Push head */
-    void push_back(T val) {
-        if(wr_p == buff.end()-1) 
-            wr_p = buff.begin();
-        else wr_p++;
-
-
-        
-        // buff.insert(wr_p, val);
+    void push_back(const T &val) {
         *wr_p = val;
+        ++wr_p;
 
         /* Overwrite tail */
-        if(wr_p == rd_p){
-            if(rd_p == buff.end()-1) 
-                rd_p = buff.begin();
-            else rd_p++;
+        if(wr_p == rd_p) {
+            std::cout << "tail overwritten! (wr: " << wr_p.pos << "; rd: " << wr_p.pos << ")" <<  std::endl;
+            ++rd_p;
         }
     }
 
@@ -68,33 +141,30 @@ class cb_t {
         /* UB */
         if(rd_p == wr_p) throw std::range_error("buffer is empty");
 
-        if(rd_p == buff.end()) wr_p = buff.begin();
-        else rd_p++;
-        
-        return *rd_p;
+        return *rd_p++;
     }
 
     T & front() {
         /* UB */
         if(rd_p == wr_p) throw std::range_error("buffer is empty");
         
-        return *(rd_p == buff.end() ? buff.begin() : rd_p + 1);
+        return *rd_p;
     }
 
     std::size_t size() {
-        if(rd_p > wr_p)
-            return std::distance(rd_p, buff.end()) + std::distance(buff.begin(), wr_p);
-        else 
-            return std::distance(rd_p, wr_p);
+        /* Circular buffer never have negative size */
+        return static_cast<std::size_t>(wr_p - rd_p);
     }
 
-    bool empty () { return size() == 0; }
+    bool empty () { return rd_p == wr_p; }
 
+    cb_it_t begin() {
+        return {*this, 0};
+    }
 };
 
 
-/* Testing Threads */
-
+/* Testing Threads Routines */
 std::mutex mtx;
 
 void producer(cb_t<int>& q) {
@@ -118,7 +188,6 @@ void consumer(cb_t<int>& q) {
         
             if (!q.empty()) value = q.pop_front();
         }
-        
         std::cout << "\t\t\tConsumed: " << value << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(4)); // Read every second
     }
@@ -129,9 +198,20 @@ int main (int argc, const char**argv) {
     cb_t<int> q(12);
  
     q.push_back(0); // back pushes 0
+    std::cout << "cb_t size: " << q.size() << std::endl;
+    std::fflush(NULL);
+    
     q.push_back(1); // q = 0 1S
+    std::cout << "cb_t size: " << q.size() << std::endl;
+    std::fflush(NULL);
+    
     q.push_back(2); // q = 0 1 2
+    std::cout << "cb_t size: " << q.size() << std::endl;
+    std::fflush(NULL);
+
     q.push_back(3); // q = 0 1 2 3
+    std::cout << "cb_t size: " << q.size() << std::endl;
+    std::fflush(NULL);
  
     assert(q.front() == 0);
     // assert(q.back() == 3);
