@@ -6,61 +6,59 @@
 #include <mutex>
 #include <iterator>
 
+/** @brief Circular Buffer */
 template<typename T>
 class cb_t {
-        friend class cb_it_t;
+        friend class it_t;
    public:
-    class cb_it_t {
+   /** @brief Circular Iterator */
+    class it_t {
         cb_t<T> &buf;
-        std::size_t pos;
+        std::ptrdiff_t pos;
         
        public:
-        cb_it_t(cb_t<T> &buf, std::size_t pos) : buf(buf), pos(pos) {}
+        it_t(cb_t<T> &buf, std::size_t pos) : buf(buf), pos(pos) {}
 
         T & operator *() {
             /* as we are frieds */
             return buf.buf[pos];
         }
 
-        cb_it_t & operator ++() {
+        it_t & operator ++() {
             if(++pos == buf.buf.size())
                 pos = 0;
-
             return *this;
         }
 
-        cb_it_t & operator --() {
+        it_t & operator --() {
             if(pos == 0)
                 pos = buf.buf.size() - 1;
             else
                 pos--;
-
             return *this;
         }
 
-        cb_it_t operator ++(int) {
+        it_t operator ++(int) {
             auto last = *this;
             if(++pos == buf.buf.size())
                 pos = 0;
-            
             return last;
         }
 
-        cb_it_t operator --(int) {
+        it_t operator --(int) {
             auto last = *this;
             if(pos == 0)
                 pos = buf.buf.size() - 1;
             else
                 pos--;
-
             return last;
         }
 
-        bool operator == (const cb_it_t &val) const {
+        bool operator == (const it_t &val) const {
             return &val.buf == &buf && val.pos == pos;
         }
 
-        bool operator != (const cb_it_t &val) const {
+        bool operator != (const it_t &val) const {
             return !operator ==(val);
         }
 
@@ -68,10 +66,11 @@ class cb_t {
             if(val >= buf.buf.size())
                 throw std::length_error("circular buffer maximum decrement size is buffer size");
 
-            pos = (pos - val < 0) ? buf.buf.size() + pos - val : pos - val;
+            pos -= val;
+            if(pos < 0) pos += buf.buf.size();
         }
 
-        std::ptrdiff_t operator - (const cb_it_t &val) const {
+        std::ptrdiff_t operator - (const it_t &val) const {
             if (pos >= val.pos) return pos - val.pos;
             return buf.buf.size() - (val.pos - pos);
         }
@@ -83,8 +82,8 @@ class cb_t {
    private:
     std::vector<T> buf;
 
-    cb_it_t wr_p;
-    cb_it_t rd_p;
+    it_t wr_p;
+    it_t rd_p;
 
    public:
     explicit cb_t(std::size_t sz) : buf{}, wr_p{begin()}, rd_p{begin()} {
@@ -159,7 +158,7 @@ class cb_t {
 
     bool empty () { return rd_p == wr_p; }
 
-    cb_it_t begin() {
+    it_t begin() {
         return {*this, 0};
     }
 };
@@ -178,7 +177,7 @@ void producer_fn(cb_t<int>& q) {
             q.push_back(new_value++);
         }
         std::cout << "Produced: " << new_value << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(4));
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
     }
 }
 
@@ -190,13 +189,13 @@ void consumer_fn(cb_t<int>& q) {
             if (!q.empty()) value = q.pop_front();
         }
         std::cout << "\t\t\tConsumed: " << value << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
 int main (int argc, const char**argv) {
 
-    cb_t<int> q(64);
+    cb_t<int> q(12);
  
     /* Push some */
     q.push_back(0); /* first element: 0 */
@@ -208,7 +207,7 @@ int main (int argc, const char**argv) {
     std::cout << "cb_t size: " << q.size() << std::endl;
     assert(q.front() == 0);
     assert(q.size() == 4);
-    assert(q.pop_front() == 0);
+    assert(q.pop_front() == 0); /** @note pop first element */
     assert(q.size() == 3);
  
     /* Pop all elements */
@@ -231,8 +230,9 @@ int main (int argc, const char**argv) {
     /* Resize under lock */
     {
         std::lock_guard<std::mutex> lock(mtx);
-        q.resize(72);
+        q.resize(18);
     }
+    std::cout << "Queue Resized!" << std::endl;
 
     /* Exit  */
     std::getc(stdin);
