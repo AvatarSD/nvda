@@ -11,7 +11,12 @@ template<typename T>
 class cb_t {
         friend class it_t;
    public:
-   /** @brief Circular Iterator */
+    /** @brief Circular Iterator
+     *
+     *  @warning As we are frieds
+     *  @note buf.buf is bad, because its a violation of cb_t encaps
+      * @todo Improve cb_t iface
+     */
     class it_t {
         cb_t<T> &buf;
         std::ptrdiff_t pos;
@@ -20,7 +25,6 @@ class cb_t {
         it_t(cb_t<T> &buf, std::size_t pos) : buf(buf), pos(pos) {}
 
         T & operator *() {
-            /* as we are frieds */
             return buf.buf[pos];
         }
 
@@ -62,9 +66,9 @@ class cb_t {
             return !operator ==(val);
         }
 
-        bool operator -= (ptrdiff_t val) {
+        void operator -= (ptrdiff_t val) {
             if(val >= buf.buf.size())
-                throw std::length_error("circular buffer maximum decrement size is buffer size");
+                throw std::length_error("Circular buffer maximum decrement size is buffer size");
 
             pos -= val;
             if(pos < 0) pos += buf.buf.size();
@@ -75,7 +79,7 @@ class cb_t {
             return buf.buf.size() - (val.pos - pos);
         }
 
-        /** @warning this is encaps vialation */
+        /** @warning this is encaps violation */
         std::size_t get_pos() const { return pos; };
     };
 
@@ -87,10 +91,10 @@ class cb_t {
 
    public:
     explicit cb_t(std::size_t sz) : buf{}, wr_p{begin()}, rd_p{begin()} {
-        if(sz < 2) throw std::length_error("circular buffer must be at least 2 elements long");
-
-        std::cout << "Constfuct circular buffer with " << sz << " elements, size: " << buf.size() << std::endl;
+        if(sz < 2) throw std::length_error("Circular buffer must be at least 2 elements long");
         buf.resize(sz);
+
+        std::cout << "Construct circular buffer with " << sz << std::endl;
     }
 
     void resize(std::size_t sz) {
@@ -102,7 +106,7 @@ class cb_t {
         auto diff_sz = sz - last_sz;
 
         /* Move data and pointers if head at the beginning of queue */
-        /** @todo encapsulate */
+        /** @todo encapsulate position comparision logic into it_t instead of get_pos() */
         if(rd_p.get_pos() > wr_p.get_pos()) {
             if(wr_p.get_pos() > diff_sz) {
                 /* If we cann`t move entire head at the end */
@@ -139,14 +143,14 @@ class cb_t {
     /* Pop tail */
     T & pop_front() {
         /* UB */
-        if(rd_p == wr_p) throw std::range_error("buffer is empty");
+        if(rd_p == wr_p) throw std::range_error("Buffer is empty");
 
         return *rd_p++;
     }
 
     T & front() {
         /* UB */
-        if(rd_p == wr_p) throw std::range_error("buffer is empty");
+        if(rd_p == wr_p) throw std::range_error("Buffer is empty");
         
         return *rd_p;
     }
@@ -161,6 +165,9 @@ class cb_t {
     it_t begin() {
         return {*this, 0};
     }
+
+    /** @todo Add size and random access methods
+              in order to fix it_t description warning */
 };
 
 
@@ -232,15 +239,16 @@ int main (int argc, const char**argv) {
         std::lock_guard<std::mutex> lock(mtx);
         q.resize(18);
     }
-    std::cout << "Queue Resized!" << std::endl;
+    std::cout << ">~~< Queue Resized! >~~<" << std::endl;
 
     /* Exit  */
-    std::getc(stdin);
+    std::cout << std::endl << std::endl << "...press ^M to exit" << std::flush;
+    std::cin.get();
 
     /** @todo exit CV & join() */
     producer_th.detach();
     consumer_th.detach();
 
+    std::cout << ">~~<   Exit 0    >~~<" << std::endl;
     return 0;
-
 }
