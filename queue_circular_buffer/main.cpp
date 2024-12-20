@@ -64,12 +64,20 @@ class cb_t {
             return !operator ==(val);
         }
 
+        bool operator -= (ptrdiff_t val) {
+            if(val >= buf.buf.size())
+                throw std::length_error("circular buffer maximum decrement size is buffer size");
+
+            pos = (pos - val < 0) ? buf.buf.size() + pos - val : pos - val;
+        }
+
         std::ptrdiff_t operator - (const cb_it_t &val) const {
             if (pos >= val.pos) return pos - val.pos;
             return buf.buf.size() - (val.pos - pos);
         }
 
-        std::size_t get_pos() const { return pos; };        
+        /** @warning this is encaps vialation */
+        std::size_t get_pos() const { return pos; };
     };
 
    private:
@@ -86,27 +94,36 @@ class cb_t {
         buf.resize(sz);
     }
 
-    // void resize(std::size_t sz) {
-    //     std::size_t last_sz = buf.size();
-    //     if (sz < last_sz) throw std::range_error("resize() allowed only upside");
+    void resize(std::size_t sz) {
+        std::size_t last_sz = buf.size();
+        if (sz < last_sz) throw std::range_error("resize() allowed only upside");
 
-    //     buff.resize(sz);
+        /* realloc */
+        buf.resize(sz);
+        auto diff_sz = sz - last_sz;
 
-    //     /* If head at the beginning of queue */
-    //     if(rd_p > wr_p) {
-    //         auto diff = sz - last_sz;
-    //         if(std::distance(buff.begin(), wr_p) > diff) {
-    //             /* If we can not move entire head at the end */
-    //             buff.insert(buff.end(), buff.begin(), buff.begin() + diff);
-    //             buff.insert(buff.begin(), buff.begin() + diff, wr_p);
-    //             wr_p -= diff;
-    //         } else {
-    //             /* If we can move entire head at the end */
-    //             buff.insert(buff.end(), buff.begin(), buff.begin() + diff);
-    //             wr_p += diff;
-    //         }
-    //     }
-    // }
+        /* Move data and pointers if head at the beginning of queue */
+        /** @todo encapsulate */
+        if(rd_p.get_pos() > wr_p.get_pos()) {
+            if(wr_p.get_pos() > diff_sz) {
+                /* If we cann`t move entire head at the end */
+                /* move partial back to new space until buffer end */
+                auto i = 0;
+                for(; i < diff_sz; i++)
+                    buf[last_sz + i] = std::move(buf[i]);
+                /* move last back to space at the begining */
+                for(auto k = 0; i < wr_p.get_pos(); i++)
+                    buf[k] = std::move(buf[i]);
+                wr_p -= diff_sz;
+            } else {
+                /* If we can move entire head at the end */
+                /* move back to new space */
+                for(auto i = 0; i < wr_p.get_pos(); i++)
+                    buf[last_sz + i] = std::move(buf[i]);
+                wr_p -= diff_sz;
+            }
+        }
+    }
 
     /* Push head */
     void push_back(const T &val) {
@@ -170,7 +187,6 @@ void consumer_fn(cb_t<int>& q) {
         int value;
         {
             std::lock_guard<std::mutex> lock(mtx);
-        
             if (!q.empty()) value = q.pop_front();
         }
         std::cout << "\t\t\tConsumed: " << value << std::endl;
@@ -211,7 +227,12 @@ int main (int argc, const char**argv) {
 
     /* Run the for some time then resize the queue */
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    // q.resize(72);
+
+    /* Resize under lock */
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        q.resize(72);
+    }
 
     /* Exit  */
     std::getc(stdin);
