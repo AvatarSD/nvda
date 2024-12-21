@@ -62,7 +62,14 @@ const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
                                 {"std::sort", std_sort<test_struct_t::iterator> }};
 
 /* Utility`s */
-void print_array() {}
+template<typename it_t>
+bool is_sorted_custom(it_t &&begin, it_t &&end) {
+    /* Iterate over and check if next element less then previous */
+    for (auto element = begin; element != end - 1 ; ++element)
+        if(*element > *(element + 1))
+            return false;
+    return true;
+}
 
 /* Test suite */
 int main (int argc, const char**argv) {
@@ -95,7 +102,9 @@ int main (int argc, const char**argv) {
 
             /* Show result */
             const std::chrono::duration<double, std::milli> duration = end - start;
-            std::cout << "\t     " << duration.count() << " ms   \t--> OK!" << std::endl;
+            std::cout << "\t     " << duration.count() << " ms   \t--> "
+                      << std::string(is_sorted_custom(unsorted_list.begin(), unsorted_list.end()) ? "OK" : "ERROR")
+                      << std::endl;
         }
     }
 
