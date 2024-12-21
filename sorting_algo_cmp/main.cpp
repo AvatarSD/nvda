@@ -19,10 +19,14 @@ void my_sort(it_t &&begin, it_t &&end){
     auto &counter = const_cast<char&>(*stuff.c_str());
     for(;counter >= 0x20; --counter){
         std::cout << stuff << "\r" << std::flush;
-        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }
-    std::cout << std::endl;
+    std::cout << "                                     \r";
+}
 
+/** @name std::sort */
+template<typename it_t>
+void std_sort(it_t &&begin, it_t &&end){
     std::sort(begin, end);
 }
 
@@ -31,7 +35,8 @@ using test_val_t = unsigned long long int;
 using test_struct_t = std::vector<test_val_t>;
 constexpr auto test_size_array = {5, 8, 129, 9453, 2348990};
 const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
-                                {"Useless Test", my_sort<test_struct_t::iterator> }};
+                                {"Useless Stuff", my_sort<test_struct_t::iterator> },
+                                {"std::sort", std_sort<test_struct_t::iterator> }};
 
 /* Utility`s */
 void print_array() {}
@@ -67,7 +72,7 @@ int main (int argc, const char**argv) {
 
             /* Show result */
             const std::chrono::duration<double, std::milli> duration = end - start;
-            std::cout << "\t     " << duration.count() << " ms\t  --> OK!" << std::endl;
+            std::cout << "\t     " << duration.count() << " ms   \t--> OK!" << std::endl;
         }
     }
 
