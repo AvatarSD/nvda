@@ -71,6 +71,24 @@ bool is_sorted_custom(it_t &&begin, it_t &&end) {
     return true;
 }
 
+template<typename it_t>
+bool range_print(it_t &&begin, it_t &&end, std::size_t max_width) {
+
+    auto data_size = std::distance(begin, end);
+    auto print_step = data_size / max_width;
+    auto skip_commas = print_step <= 1;
+
+    print_step = print_step ? print_step : 1;
+
+    /* Iterate over and print: a value, comma in between
+       if step is 1 and double-dot if some element skipped */
+    std::cout << "\t\t[";
+    for (auto element = begin; element < end; element += print_step)
+        std::cout << std::hex << *element << std:: dec
+            << std::string((element < end - print_step) ? (print_step != 1 ? ".." : ", ") : "");
+    std::cout << "]" << std::endl;
+}
+
 /* Test suite */
 int main (int argc, const char**argv) {
     std::cout << ">~~< Program Begin >~~<" << std::endl;
