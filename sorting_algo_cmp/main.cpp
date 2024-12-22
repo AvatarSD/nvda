@@ -30,6 +30,12 @@ void std_sort(it_t &&begin, it_t &&end) {
     std::sort(begin, end);
 }
 
+/** @name std::stable_sort */
+template<typename it_t>
+void std_stable_sort(it_t &&begin, it_t &&end) {
+    std::stable_sort(begin, end);
+}
+
 /** @name Bubble Sort */
 template<typename it_t>
 void bubble_sort(it_t &&begin, it_t &&end) {
@@ -59,6 +65,7 @@ constexpr auto test_size_array = {5, 8, 129, 9453, 34524/*, 2348990, 20457645*/}
 const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
                                 // {"Useless Stuff", my_sort<test_struct_t::iterator> },
                                 {"Bubble Sort", bubble_sort<test_struct_t::iterator> },
+                                {"stable_sort", std_stable_sort<test_struct_t::iterator> },
                                 {"std::sort", std_sort<test_struct_t::iterator> }};
 
 /* Utility`s */
