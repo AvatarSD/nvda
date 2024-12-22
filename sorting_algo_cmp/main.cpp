@@ -55,9 +55,9 @@ void bubble_sort(it_t &&begin, it_t &&end) {
 /* Settings */
 using test_val_t = unsigned long long int;
 using test_struct_t = std::vector<test_val_t>;
-constexpr auto test_size_array = {5, 8, 129, 9453, 2348990, 20457645};
+constexpr auto test_size_array = {5, 8, 129, 9453, 34524/*, 2348990, 20457645*/};
 const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
-                                {"Useless Stuff", my_sort<test_struct_t::iterator> },
+                                // {"Useless Stuff", my_sort<test_struct_t::iterator> },
                                 {"Bubble Sort", bubble_sort<test_struct_t::iterator> },
                                 {"std::sort", std_sort<test_struct_t::iterator> }};
 
@@ -108,21 +108,22 @@ int main (int argc, const char**argv) {
 
         /* Test each algoritm */
         for(auto &test_pair : list_of_tests) {
-            std::cout << "\t --> " << test_pair.first << std::endl;
+            std::cout << "\t --> " << test_pair.first << std::flush << "   \t";
 
             /* Copy same data for each test */
             test_struct_t test_list = {unsorted_list};
 
             /* Test */
             auto start = std::chrono::high_resolution_clock::now();
-            test_pair.second(unsorted_list.begin(), unsorted_list.end());
+            test_pair.second(test_list.begin(), test_list.end());
             auto end = std::chrono::high_resolution_clock::now();
 
             /* Show result */
             const std::chrono::duration<double, std::milli> duration = end - start;
             std::cout << "\t     " << duration.count() << " ms   \t--> "
-                      << std::string(is_sorted_custom(unsorted_list.begin(), unsorted_list.end()) ? "OK" : "ERROR")
-                      << std::endl;
+                      << std::string(is_sorted_custom(test_list.begin(), test_list.end())
+                      ? "OK" : "ERROR") << std::endl;
+            range_print(test_list.begin(), test_list.end(), 8);
         }
     }
 
