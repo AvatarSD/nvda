@@ -5,6 +5,7 @@
 #include <map>
 #include <random>
 #include <algorithm>
+#include <stack>
 
 /* Header */
 template<typename it_t>
@@ -58,15 +59,46 @@ void bubble_sort(it_t &&begin, it_t &&end) {
     }
 }
 
+/** @name Non-Recursive Quick Sort */
+template<typename it_t>
+void nr_quick_sort(it_t &&begin, it_t &&end) {
+    std::stack<std::pair<it_t, it_t>> range_stack;
+    it_t left, right;
+
+    /* Push initial range */
+    range_stack.push({begin, end});
+
+    /* Iterate over all ranges */
+    while (!range_stack.empty()) {
+        /* Get latest range to sort */
+        std::tie(left, right) = range_stack.top();
+        range_stack.pop();
+
+        /* If there is more then one element in range*/
+        if (left < right) {
+            /* Choose middle element as pivot */
+            it_t pivot = left + (right - left) / 2;
+
+            /* Move all elements to left or rigth of pivot */
+            std::nth_element(left, pivot, right);
+
+            /* Add two sub-ranges for nest cycles to ranges stack */
+            range_stack.push({pivot + 1, right});
+            range_stack.push({left, pivot});
+        }
+    }
+}
+
 /* Settings */
 using test_val_t = unsigned long long int;
 using test_struct_t = std::vector<test_val_t>;
 constexpr auto test_size_array = {5, 8, 129, 9453, 34524/*, 2348990, 20457645*/};
 const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
                                 // {"Useless Stuff", my_sort<test_struct_t::iterator> },
-                                {"Bubble Sort", bubble_sort<test_struct_t::iterator> },
-                                {"stable_sort", std_stable_sort<test_struct_t::iterator> },
-                                {"std::sort", std_sort<test_struct_t::iterator> }};
+                                {"Bubble Sort     ", bubble_sort<test_struct_t::iterator> },
+                                {"NR Quick Sort   ", nr_quick_sort<test_struct_t::iterator> },
+                                {"std::stable_sort", std_stable_sort<test_struct_t::iterator> },
+                                {"std::sort       ", std_sort<test_struct_t::iterator> }};
 
 /* Utility`s */
 template<typename it_t>
