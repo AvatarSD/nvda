@@ -15,7 +15,7 @@ using sort_f = std::function<void(it_t &&begin, it_t &&end)>;
 
 /** @name Useless Sort */
 template<typename it_t>
-void my_sort(it_t &&begin, it_t &&end) {
+void not_a_sort(it_t &&begin, it_t &&end) {
     std::string stuff = {"Stupid stuff to slow things down"};
     auto &counter = const_cast<char&>(*stuff.c_str());
     for(;counter >= 0x20; --counter){
@@ -94,7 +94,7 @@ using test_val_t = unsigned long long int;
 using test_struct_t = std::vector<test_val_t>;
 constexpr auto test_size_array = {5, 8, 129, 9453, 34524/*, 2348990, 20457645*/};
 const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
-                                // {"Useless Stuff", my_sort<test_struct_t::iterator> },
+                                // {"Useless Stuff", not_a_sort<test_struct_t::iterator> },
                                 {"Bubble Sort     ", bubble_sort<test_struct_t::iterator> },
                                 {"NR Quick Sort   ", nr_quick_sort<test_struct_t::iterator> },
                                 {"std::stable_sort", std_stable_sort<test_struct_t::iterator> },
@@ -134,23 +134,24 @@ int main (int argc, const char**argv) {
 
     /* Test arrays of different length */
     for (auto test_size : test_size_array) {
-        std::cout << " --> Test with Array Length: " << test_size << std::endl;
+        std::cout << "\r --> Test with Array Length: " << test_size << std::endl;
 
         /* Allocate new array for tests */
-        test_struct_t unsorted_list;
+        test_struct_t unsorted_list = {}, test_list = {};
         unsorted_list.resize(test_size);
 
         /* Use Mersenne Twister random number engine to fill test array */
         std::random_device rd;
         std::mt19937 gen(rd());
         for(auto &el : unsorted_list) el = gen();
+        range_print(unsorted_list.begin(), unsorted_list.end(), 8);
 
         /* Test each algoritm */
         for(auto &test_pair : list_of_tests) {
             std::cout << "\t --> " << test_pair.first << std::flush << "   \t";
 
             /* Copy same data for each test */
-            test_struct_t test_list = {unsorted_list};
+            test_list = {unsorted_list};
 
             /* Test */
             auto start = std::chrono::high_resolution_clock::now();
@@ -162,12 +163,12 @@ int main (int argc, const char**argv) {
             std::cout << "\t     " << duration.count() << " ms   \t--> "
                       << std::string(is_sorted_custom(test_list.begin(), test_list.end())
                       ? "OK" : "ERROR") << std::endl;
-            range_print(test_list.begin(), test_list.end(), 8);
         }
+        range_print(test_list.begin(), test_list.end(), 8);
     }
 
     /* Exit  */
-    std::cout << std::endl << std::endl << "...press ^M to exit" << std::flush;
+    std::cout << std::endl << std::endl << "\t...press ^M to exit" << std::flush;
     std::cin.get();
 
     std::cout << ">~~<   Exit 0    >~~<" << std::endl;
