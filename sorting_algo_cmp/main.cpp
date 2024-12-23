@@ -89,6 +89,65 @@ void nr_quick_sort(it_t &&begin, it_t &&end) {
     }
 }
 
+/** @name NR quick sort with O(.. * 2NlogN) numeral(op+() & op/()
+          must exist) pivot selection */
+template<typename it_t>
+void nr_quick_sort_numeral(it_t &&begin, it_t &&end) {
+    std::stack<std::pair<it_t, it_t>> range_stack;
+    it_t left, right;
+
+    auto chose_pivot = [](auto left, auto right) -> it_t {
+        /* Extract position from iterators, not an loop */
+        const auto length = std::distance(left, right);
+
+        /* Averaging of all elements */
+        auto avg = *left;
+        for(auto it = left + 1; it < right; ++it)
+            avg += *it;
+        auto closest_median = avg / length;
+
+        /* Seeking for  */
+        auto closest_it = left;
+        for(auto it = left; it < right; ++it)
+            if(*it < *closest_it) closest_it = it;
+
+        /* Return closest to average value */
+        return closest_it;
+
+    };
+
+    /* Push initial range */
+    range_stack.push({begin, end});
+
+    /* Iterate over all ranges */
+    while (!range_stack.empty()) {
+        /* Get latest range to sort */
+        std::tie(left, right) = range_stack.top();
+        range_stack.pop();
+
+        /* If there is more then one element in range*/
+        if (left < right) {
+            /* Choose average element as pivot */
+            it_t pivot = chose_pivot(left, right);
+
+            /* Move all elements to left or rigth of pivot */
+            std::nth_element(left, pivot, right);
+
+            /* Add two sub-ranges for nest cycles to ranges stack */
+            range_stack.push({pivot + 1, right});
+            range_stack.push({left, pivot});
+        }
+    }
+}
+
+/** @todo
+* NR quick sort wirh custom nth_el
+* NR quick sort wirh custom nth_el and memory-expensive(using copy to list)
+* insertion sort
+* selection sort
+* insertion memory-expensive sort
+*/
+
 /* Settings */
 using test_val_t = unsigned long long int;
 using test_struct_t = std::vector<test_val_t>;
@@ -97,6 +156,7 @@ const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
                                 // {"Useless Stuff", not_a_sort<test_struct_t::iterator> },
                                 {"Bubble Sort     ", bubble_sort<test_struct_t::iterator> },
                                 {"NR Quick Sort   ", nr_quick_sort<test_struct_t::iterator> },
+                                {"Numeral QSort   ", nr_quick_sort_numeral<test_struct_t::iterator> },
                                 {"std::stable_sort", std_stable_sort<test_struct_t::iterator> },
                                 {"std::sort       ", std_sort<test_struct_t::iterator> }};
 
