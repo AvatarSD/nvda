@@ -4,6 +4,7 @@
 
     * cmake 3.11
     * gcc 11.4.0+
+    * tmux
 
 #### Build & Run
 
@@ -29,6 +30,8 @@ Implement a custom adapter for std::vector that mimics the behavior of a circula
 
 - Implement a method resize that adjusts the internal vector size but keeps the circularity intact.
 
+- Do a queue overload simulation.
+
 ### sorting_algo_cmp
 
 ##### Initial Task
@@ -37,6 +40,11 @@ Implement a custom sorting argoritm comparision
 
 ##### Details:
 
-- Write own arbitary sorting algoritms
+- Write own arbitary sorting algoritms.
 
-- Measure a execution time on diffwerent sizes datasets
+- Measure a execution time on different sizes datasets.
+
+
+
+
+![Preview](preview.png)
