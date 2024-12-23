@@ -140,6 +140,23 @@ void nr_quick_sort_numeral(it_t &&begin, it_t &&end) {
     }
 }
 
+/** @name Regular quick sort, based on nth_element() */
+template<typename it_t>
+void quick_sort(it_t begin, it_t end) {
+    /* Base case */
+    if (end - begin <= 1) return;
+
+    /* Choose middle element as pivot */
+    it_t pivot = begin + (end - begin) / 2;
+
+    /* Move all elements to left or rigth of pivot */
+    std::nth_element(begin, pivot, end);
+
+    /* Call subroutines for sub-ranges */
+    quick_sort(begin, pivot);
+    quick_sort(pivot + 1, end);
+}
+
 /** @todo
 * NR quick sort wirh custom nth_el
 * NR quick sort wirh custom nth_el and memory-expensive(using copy to list)
@@ -157,6 +174,7 @@ const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
                                 {"Bubble Sort     ", bubble_sort<test_struct_t::iterator> },
                                 {"NR Quick Sort   ", nr_quick_sort<test_struct_t::iterator> },
                                 {"Numeral QSort   ", nr_quick_sort_numeral<test_struct_t::iterator> },
+                                {"Recursive QSort ", quick_sort<test_struct_t::iterator> },
                                 {"std::stable_sort", std_stable_sort<test_struct_t::iterator> },
                                 {"std::sort       ", std_sort<test_struct_t::iterator> }};
 
