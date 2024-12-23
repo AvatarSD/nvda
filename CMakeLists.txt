@@ -1,21 +1,25 @@
 cmake_minimum_required(VERSION 3.10)
-project(MyProject)
+project(NVDA-Preview)
 
 # Subprojects
 add_subdirectory(queue_circular_buffer)
 add_subdirectory(sorting_algo_cmp)
 
 # Run in tmux
-add_custom_target(run
+add_custom_target(run_queue
   COMMAND ./QueueCircularBuffer
-#   COMMAND tmux new-session ' ./QueueCircularBuffer'; split-window -h 'echo "Build and run complete"'
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/queue_circular_buffer
-  COMMENT "Building and running all targets in tmux"
+  COMMENT "Building and running queueu with two threads"
 )
 
 add_custom_target(run_sort
   COMMAND ./SortingAlgoCompare
-#   COMMAND tmux new-session ' ./QueueCircularBuffer'; split-window -h 'echo "Build and run complete"'
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/sorting_algo_cmp
+  COMMENT "Building and running sorting comparision"
+)
+
+add_custom_target(run
+  COMMAND ./run_in_tmux.sh
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/..
   COMMENT "Building and running all targets in tmux"
 )
