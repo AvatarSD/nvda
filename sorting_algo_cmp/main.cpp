@@ -199,8 +199,9 @@ void quick_sort_canonical(it_t begin, it_t end) {
 }
 
 /** @todo
-* NR quick sort wirh custom nth_el
-* NR quick sort wirh custom nth_el and memory-expensive(using copy to list)
+** @name NR quick sort with canonical pivot selection *
+* NR quick sort wirh custom nth_element()
+  and memory-expensive pivot redistribvution using insertion to list
 * insertion sort
 * selection sort
 * insertion memory-expensive sort
@@ -231,7 +232,7 @@ bool is_sorted_custom(it_t &&begin, it_t &&end) {
 }
 
 template<typename it_t>
-bool range_print(it_t &&begin, it_t &&end, std::size_t max_width) {
+void range_print(it_t &&begin, it_t &&end, std::size_t max_width) {
 
     auto data_size = std::distance(begin, end);
     auto print_step = data_size / max_width;
