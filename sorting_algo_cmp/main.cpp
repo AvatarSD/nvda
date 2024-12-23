@@ -157,6 +157,47 @@ void quick_sort(it_t begin, it_t end) {
     quick_sort(pivot + 1, end);
 }
 
+/* Helper */
+template<typename it_t>
+void chose_pivot_canonical(it_t begin, it_t end, it_t &pivot) {
+    /* Move pivot to end */
+    std::iter_swap(pivot, end - 1);
+    pivot = end - 1;
+
+    /* Iterate over and Swap(j) within next non-swapped(i)
+       if element(j) less then pivot */
+    it_t i = begin;
+    for (it_t j = begin; j < end - 1; ++j) {
+        if (*j <= *pivot) {
+            // ++i;
+            std::iter_swap(i++, j);
+        }
+    }
+
+    /* Move pivot at the midddle of distribution */
+    std::iter_swap(i, pivot);
+
+    /* As it random access iterator, we need manually reposition it */
+    pivot = i;
+}
+
+/** @name Canonical quick sort with canonical pivot selection */
+template<typename it_t>
+void quick_sort_canonical(it_t begin, it_t end) {
+    /* Base case */
+    if (end - begin <= 1) return;
+
+    /* Choose middle element as pivot */
+    it_t pivot = begin + (end - begin) / 2;
+
+    /* Move all elements to left or rigth of pivot */
+    chose_pivot_canonical(begin, end, pivot);
+
+    /* Call subroutines for sub-ranges */
+    quick_sort_canonical(begin, pivot);
+    quick_sort_canonical(pivot + 1, end);
+}
+
 /** @todo
 * NR quick sort wirh custom nth_el
 * NR quick sort wirh custom nth_el and memory-expensive(using copy to list)
@@ -175,6 +216,7 @@ const std::map<std::string, sort_f<test_struct_t::iterator>> list_of_tests = {
                                 {"NR Quick Sort   ", nr_quick_sort<test_struct_t::iterator> },
                                 {"Numeral QSort   ", nr_quick_sort_numeral<test_struct_t::iterator> },
                                 {"Recursive QSort ", quick_sort<test_struct_t::iterator> },
+                                {"Canonical QSort ", quick_sort_canonical<test_struct_t::iterator> },
                                 {"std::stable_sort", std_stable_sort<test_struct_t::iterator> },
                                 {"std::sort       ", std_sort<test_struct_t::iterator> }};
 
